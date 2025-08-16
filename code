@@ -1,0 +1,146 @@
+# 0. Imports (common beginner pattern)
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# sometimes you might want to see warnings, comment out if noisy
+import warnings
+warnings.filterwarnings('ignore')
+
+sns.set(style="whitegrid")
+
+# 1. Load data
+def load_data(path='netflix1.csv'):
+    df = pd.read_csv(path)
+    print("Initial shape:", df.shape)
+    return df
+
+# 2. Clean data
+def clean_data(df):
+    # normalize column names
+    df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
+
+    # drop exact duplicate rows
+    before = len(df)
+    df = df.drop_duplicates()
+    after = len(df)
+    print(f"Dropped duplicates: {before - after}")
+
+    # convert date_added to datetime
+    if 'date_added' in df.columns:
+        df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
+
+
+    return df
+
+# 3. Feature engineering for time
+def add_time_features(df):
+    if 'date_added' in df.columns:
+        df['year_added'] = df['date_added'].dt.year
+        df['month_added'] = df['date_added'].dt.month
+        df['day_added'] = df['date_added'].dt.day
+    return df
+
+# 4. Visualizations / EDA
+def plot_content_type(df):
+    # Movies vs TV Shows
+    type_counts = df['type'].value_counts()
+    plt.figure(figsize=(6,4))
+    sns.barplot(x=type_counts.index, y=type_counts.values, palette='pastel')
+    plt.title('Content Type Distribution')
+    plt.ylabel('Count')
+    plt.xlabel('Type')
+    plt.tight_layout()
+    plt.show()
+
+def plot_top_genres(df, top_n=10):
+    genre_lists = df['listed_in'].fillna('').apply(lambda x: [g.strip() for g in x.split(',')])
+    all_genres = []
+    for gl in genre_lists:
+        all_genres.extend(gl)
+    genre_series = pd.Series(all_genres)
+    top_genres = genre_series.value_counts().head(top_n)
+    plt.figure(figsize=(8,5))
+    sns.barplot(x=top_genres.values, y=top_genres.index, palette='Set2')
+    plt.title(f'Top {top_n} Genres')
+    plt.xlabel('Count')
+    plt.ylabel('Genre')
+    plt.tight_layout()
+    plt.show()
+
+def plot_content_over_time(df):
+    # number of items added per year
+    if 'year_added' in df.columns:
+        plt.figure(figsize=(10,4))
+        year_counts = df['year_added'].value_counts().sort_index()
+        sns.barplot(x=year_counts.index.astype(str), y=year_counts.values, palette='coolwarm')
+        plt.xticks(rotation=45)
+        plt.title('Content Added by Year')
+        plt.xlabel('Year')
+        plt.ylabel('Count')
+        plt.tight_layout()
+        plt.show()
+
+def plot_top_directors(df, top_n=10):
+    # some entries might have multiple directors; naive approach
+    director_series = df['director'].fillna('Unknown')
+    top_directors = director_series.value_counts().head(top_n)
+    plt.figure(figsize=(8,5))
+    sns.barplot(x=top_directors.values, y=top_directors.index, palette='Blues_d')
+    plt.title('Top Directors by Number of Titles')
+    plt.xlabel('Number of Titles')
+    plt.ylabel('Director')
+    plt.tight_layout()
+    plt.show()
+
+def plot_rating_distribution(df):
+    plt.figure(figsize=(8,4))
+    rating_counts = df['rating'].value_counts().head(10)
+    sns.barplot(x=rating_counts.index, y=rating_counts.values)
+    plt.xticks(rotation=45)
+    plt.title('Top Ratings Frequency')
+    plt.xlabel('Rating')
+    plt.ylabel('Count')
+    plt.tight_layout()
+    plt.show()
+
+def plot_top_countries(df, top_n=10):
+    country_counts = df['country'].fillna('Unknown').value_counts().head(top_n)
+    plt.figure(figsize=(8,5))
+    sns.barplot(x=country_counts.values, y=country_counts.index)
+    plt.title(f'Top {top_n} Countries by Content Count')
+    plt.xlabel('Count')
+    plt.ylabel('Country')
+    plt.tight_layout()
+    plt.show()
+
+# 5. Summary printouts (simple)
+def print_basic_info(df):
+    print("=== Basic Info ===")
+    print("Shape:", df.shape)
+    print("Columns:", df.columns.tolist())
+    print("Missing per column:")
+    print(df.isnull().sum())
+    print()
+
+# 6. Main flow
+if __name__ == '__main__':
+    df = load_data('netflix1.csv')
+    print_basic_info(df)
+    df = clean_data(df)
+    df = add_time_features(df)
+
+    # Visuals
+    plot_content_type(df)
+    plot_top_genres(df, top_n=10)
+    plot_content_over_time(df)
+    plot_top_directors(df, top_n=10)
+    plot_rating_distribution(df)
+    plot_top_countries(df, top_n=10)
+
+    # Simple conclusions (printed)
+    print("=== Insights ===")
+    print("1. Check which type (Movie/TV Show) dominates.")
+    print("2. Top genres and how content addition changed over years.")
+    print("3. Directors with most titles and top countries.")
